@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mutual-fund-chatbot
+  labels:
+    app: mutual-fund-chatbot
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: mutual-fund-chatbot
+  template:
+    metadata:
+      labels:
+        app: mutual-fund-chatbot
+    spec:
+      containers:
+      - name: app
+        image: mutual-fund-chatbot:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: ENVIRONMENT
+          value: "production"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: CHROMA_DB_PATH
+          value: "/app/data/embeddings/chroma.db"
+        - name: GOOGLE_AI_STUDIO_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: api-keys
+              key: google-ai-studio
+        volumeMounts:
+        - name: data-volume
+          mountPath: /app/data
+        - name: logs-volume
+          mountPath: /app/logs
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      - name: chroma
+        image: chromadb/chroma:latest
+        ports:
+        - containerPort: 8000
+        volumeMounts:
+        - name: chroma-data
+          mountPath: /chroma/chroma
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "250m"
+      - name: redis
+        image: redis:7-alpine
+        ports:
+        - containerPort: 6379
+        volumeMounts:
+        - name: redis-data
+          mountPath: /data
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+      volumes:
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: data-pvc
+      - name: logs-volume
+        persistentVolumeClaim:
+          claimName: logs-pvc
+      - name: chroma-data
+        persistentVolumeClaim:
+          claimName: chroma-pvc
+      - name: redis-data
+        persistentVolumeClaim:
+          claimName: redis-pvc

@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: hdfc-rag-backend
+    env: python
+    buildCommand: pip install -r requirements-api.txt
+    startCommand: python simple_backend.py
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+      - key: API_HOST
+        value: 0.0.0.0
+      - key: API_PORT
+        value: 10000
+      - key: CHROMA_DB_PATH
+        value: ./data/embeddings/chroma.db
+      - key: GOOGLE_AI_STUDIO_API_KEY
+        sync: false  # Set this in Render dashboard
+      - key: ENCRYPTION_KEY
+        generateValue: true  # Auto-generate secure key
+    healthCheckPath: /api/health
+    disk:
+      name: data
+      mountPath: /app/data
+      sizeGB: 10
+
+  - type: web
+    name: hdfc-rag-frontend
+    env: static
+    buildCommand: echo "Building frontend..."
+    staticPublishPath: ./frontend
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - source: /*
+        headers:
+          - key: Access-Control-Allow-Origin
+            value: "*"
+          - key: Access-Control-Allow-Methods
+            value: "GET, POST, OPTIONS"
+          - key: Access-Control-Allow-Headers
+            value: "Content-Type"

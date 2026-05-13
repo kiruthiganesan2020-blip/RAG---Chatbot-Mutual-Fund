@@ -1,0 +1,259 @@
+name: Automated Data Collection and Updates
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC (7:30 AM IST)
+    - cron: '0 2 * * *'
+    # Run weekly on Sundays at 3 AM UTC (8:30 AM IST) for full refresh
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+    inputs:
+      force_refresh:
+        description: 'Force refresh all data'
+        required: false
+        default: 'false'
+        type: boolean
+      collection_type:
+        description: 'Type of collection to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - factsheets
+          - kim
+          - sid
+          - faqs
+          - regulatory
+
+env:
+  PYTHON_VERSION: '3.13'
+  NODE_VERSION: '20'
+
+jobs:
+  data-collection:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          chromium-browser \
+          chromium-chromedriver \
+          firefox \
+          firefox-geckodriver \
+          wget \
+          curl \
+          jq
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install --upgrade sentence-transformers chromadb
+    
+    - name: Set up Chrome for Selenium
+      run: |
+        # Install Chrome for Selenium
+        wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+        echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+        sudo apt-get update
+        sudo apt-get install -y google-chrome-stable
+    
+    - name: Create data directories
+      run: |
+        mkdir -p data/raw/{factsheets,kim,sid,faqs,regulatory}
+        mkdir -p data/processed
+        mkdir -p data/embeddings
+        mkdir -p data/cache
+        mkdir -p data/backups
+        mkdir -p logs
+    
+    - name: Run Phase 1.1.2 - Web Scraping
+      run: |
+        echo "Starting web scraping for HDFC Mutual Fund data..."
+        python ingestion/phase1_1_2/run_phase1_1_2_fixed.py
+      env:
+        DISPLAY: :99
+    
+    - name: Run Phase 1.1.3 - Content Processing
+      run: |
+        echo "Starting content processing..."
+        python ingestion/phase1_1_3/run_phase1_1_3_fixed.py
+    
+    - name: Run Phase 1.2 - Data Corpus Development
+      run: |
+        echo "Starting data corpus development..."
+        python ingestion/phase1_2/run_phase1_2.py
+    
+    - name: Run Phase 1.3 - Vector Database Setup
+      run: |
+        echo "Starting vector database setup..."
+        python ingestion/phase1_3/run_phase1_3.py
+    
+    - name: Run Phase 2.1 - Document Processing Pipeline
+      run: |
+        echo "Starting document processing pipeline..."
+        python ingestion/phase2_1/run_phase2_1.py
+    
+    - name: Run Phase 2.2 - Vector Database Setup
+      run: |
+        echo "Starting vector database setup..."
+        python ingestion/phase2_2/run_phase2_2.py
+    
+    - name: Generate data collection report
+      run: |
+        echo "Generating data collection report..."
+        python -c "
+        import json
+        from pathlib import Path
+        from datetime import datetime
+        
+        report = {
+            'collection_time': datetime.now().isoformat(),
+            'workflow_run_id': '${{ github.run_id }}',
+            'trigger': '${{ github.event_name }}',
+            'force_refresh': '${{ github.event.inputs.force_refresh }}',
+            'collection_type': '${{ github.event.inputs.collection_type }}',
+            'data_stats': {}
+        }
+        
+        # Count files in each data directory
+        for dir_name in ['factsheets', 'kim', 'sid', 'faqs', 'regulatory']:
+            dir_path = Path('data/raw') / dir_name
+            if dir_path.exists():
+                report['data_stats'][dir_name] = len(list(dir_path.glob('*')))
+            else:
+                report['data_stats'][dir_name] = 0
+        
+        # Count processed files
+        processed_dir = Path('data/processed')
+        if processed_dir.exists():
+            report['data_stats']['processed'] = len(list(processed_dir.glob('*')))
+        else:
+            report['data_stats']['processed'] = 0
+        
+        # Save report
+        with open('data/collection_report.json', 'w') as f:
+            json.dump(report, f, indent=2)
+        
+        print('Data Collection Report:')
+        print(json.dumps(report, indent=2))
+        "
+    
+    - name: Create database backup
+      run: |
+        echo "Creating database backup..."
+        python -c "
+        import json
+        from pathlib import Path
+        from datetime import datetime
+        
+        backup_info = {
+            'backup_time': datetime.now().isoformat(),
+            'workflow_run_id': '${{ github.run_id }}',
+            'trigger': '${{ github.event_name }}',
+            'description': 'Automated backup from GitHub Actions workflow'
+        }
+        
+        backup_dir = Path('data/backups')
+        backup_dir.mkdir(exist_ok=True)
+        
+        backup_file = backup_dir / f'github_actions_backup_${{ github.run_id }}.json'
+        with open(backup_file, 'w') as f:
+            json.dump(backup_info, f, indent=2)
+        
+        print(f'Backup created: {backup_file}')
+        "
+    
+    - name: Upload data artifacts
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: data-collection-${{ github.run_number }}
+        path: |
+          data/raw/
+          data/processed/
+          data/embeddings/
+          data/collection_report.json
+        retention-days: 30
+    
+    - name: Upload backup artifacts
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: backup-${{ github.run_number }}
+        path: data/backups/
+        retention-days: 90
+    
+    - name: Commit and push updated data
+      if: success() && github.event_name == 'schedule'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        # Add updated data files
+        git add data/raw/ data/processed/ data/embeddings/ data/collection_report.json
+        
+        # Check if there are changes to commit
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "Automated data update - $(date +'%Y-%m-%d %H:%M:%S')
+          git push
+        fi
+    
+    - name: Create summary
+      run: |
+        echo "## Data Collection Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- **Run ID**: ${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Trigger**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Collection Type**: ${{ github.event.inputs.collection_type || 'all' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Force Refresh**: ${{ github.event.inputs.force_refresh || 'false' }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -f "data/collection_report.json" ]; then
+          echo "### Data Statistics" >> $GITHUB_STEP_SUMMARY
+          python -c "
+          import json
+          with open('data/collection_report.json', 'r') as f:
+              report = json.load(f)
+          
+          for key, value in report['data_stats'].items():
+              print(f'- **{key.title()}**: {value} files')
+          " >> $GITHUB_STEP_SUMMARY
+        fi
+    
+    - name: Notify on failure
+      if: failure()
+      run: |
+        echo "::error::Data collection workflow failed!"
+        echo "Run ID: ${{ github.run_id }}"
+        echo "Trigger: ${{ github.event_name }}"
+        echo "Check the logs for details"

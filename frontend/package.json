@@ -1,0 +1,30 @@
+{
+  "name": "hdfc-rag-chatbot-frontend",
+  "version": "1.0.0",
+  "description": "HDFC Mutual Fund RAG Chatbot Frontend",
+  "main": "src/index.jsx",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^4.0.0",
+    "axios": "^1.16.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "vue": "^3.3.0"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  },
+  "build": {
+    "outDir": "dist",
+    "emptyOutDir": "dist",
+    "rollupOptions": {
+      "external": [
+        "vue"
+      ]
+    }
+  }
+}

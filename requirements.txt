@@ -1,0 +1,65 @@
+# Core Dependencies
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Web Scraping
+requests==2.31.0
+beautifulsoup4==4.12.2
+selenium==4.15.2
+lxml==4.9.3
+html5lib==1.1
+
+# PDF Processing
+PyPDF2==3.0.1
+pdfplumber==0.10.3
+pymupdf==1.23.14
+
+# Vector Database
+chromadb==0.4.18
+sentence-transformers==2.2.2
+numpy==1.24.3
+pandas==2.1.4
+
+# Text Processing
+nltk==3.8.1
+spacy==3.7.2
+textstat==0.7.3
+
+# Data Processing
+python-dotenv==1.0.0
+pyyaml==6.0.1
+jsonschema==4.20.0
+
+# Logging and Monitoring
+loguru==0.7.2
+rich==13.7.0
+tqdm==4.66.1
+
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-mock==3.12.0
+httpx==0.25.2
+
+# Development Tools
+black==23.11.0
+flake8==6.1.0
+mypy==1.7.1
+pre-commit==3.6.0
+
+# Utilities
+python-dateutil==2.8.2
+typing-extensions==4.8.0
+aiofiles==23.2.1
+asyncio==3.4.3
+
+# Security and Compliance
+bleach==6.1.0
+cryptography==41.0.8
+schedule==1.2.0
+
+# Optional: For enhanced performance
+# torch==2.1.1  # Uncomment if using GPU acceleration
+# transformers==4.35.2  # Uncomment for advanced NLP

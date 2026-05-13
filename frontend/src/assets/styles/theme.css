@@ -1,0 +1,113 @@
+/**
+ * Modern Chat Theme
+ * ChatGPT-style layout with Tailwind utilities
+ */
+
+:root {
+  --primary: #004a99;
+  --primary-light: #e6f0ff;
+  --bg-main: #f8fafc;
+  --bubble-user: #004a99;
+  --bubble-assistant: #ffffff;
+}
+
+.chat-interface {
+  @apply flex flex-col h-screen bg-gray-50 font-sans overflow-hidden;
+}
+
+.chat-header {
+  @apply bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10;
+}
+
+.chat-header h1 {
+  @apply text-lg font-bold text-gray-900;
+}
+
+.chat-messages {
+  @apply flex-1 overflow-y-auto px-4 py-8 space-y-6 scroll-smooth custom-scrollbar;
+}
+
+/* Message Layouts */
+.message {
+  @apply flex w-full max-w-4xl mx-auto;
+}
+
+.message.user {
+  @apply justify-end;
+}
+
+.message.assistant {
+  @apply justify-start;
+}
+
+.message-wrapper {
+  @apply flex flex-col max-w-[85%] sm:max-w-[75%];
+}
+
+.user .message-wrapper {
+  @apply items-end;
+}
+
+.assistant .message-wrapper {
+  @apply items-start;
+}
+
+/* Bubbles */
+.message-bubble {
+  @apply px-4 py-3 text-sm leading-relaxed shadow-sm;
+}
+
+.user .message-bubble {
+  @apply bg-blue-600 text-white rounded-2xl rounded-tr-none;
+}
+
+.assistant .message-bubble {
+  @apply bg-white text-gray-800 border border-gray-100 rounded-2xl rounded-tl-none;
+}
+
+.message-content {
+  @apply break-words;
+}
+
+/* Metadata */
+.message-metadata {
+  @apply mt-1 flex items-center space-x-2 text-[10px] font-medium text-gray-400 uppercase tracking-tight;
+}
+
+/* Input Area */
+.chat-input-container {
+  @apply bg-white border-t border-gray-100 p-4 sm:p-6;
+}
+
+.input-group {
+  @apply max-w-4xl mx-auto flex items-end space-x-3;
+}
+
+.chat-input {
+  @apply flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none max-h-32;
+}
+
+.send-button {
+  @apply bg-blue-600 text-white p-3 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0;
+}
+
+/* Typing Indicator */
+.typing-indicator {
+  @apply flex items-center space-x-1 px-4 py-3 bg-white border border-gray-100 rounded-2xl w-max;
+}
+
+.typing-indicator span {
+  @apply w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce opacity-60;
+}
+
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-gray-200 rounded-full hover:bg-gray-300;
+}
