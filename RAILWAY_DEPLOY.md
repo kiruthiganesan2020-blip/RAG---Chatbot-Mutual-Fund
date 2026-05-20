@@ -21,3 +21,12 @@ The FastAPI backend serves the frontend at `/` and the API at `/api/*`, so no se
 The current deployed backend uses mock responses and does not require API keys.
 
 If you switch to the full RAG backend later, add the keys from `.env.example` in Railway's Variables tab instead of committing `.env`.
+
+## Render
+
+This repo also includes `render.yaml` for Render. It deploys the same single FastAPI service:
+
+- Build command: `pip install -r requirements-railway.txt`
+- Start command: `python simple_backend.py`
+- Health check: `/api/health`
+- Python version: `3.11.9`
