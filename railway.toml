@@ -1,0 +1,10 @@
+[build]
+builder = "RAILPACK"
+buildCommand = "pip install -r requirements-railway.txt"
+
+[deploy]
+startCommand = "python simple_backend.py"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 120
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10

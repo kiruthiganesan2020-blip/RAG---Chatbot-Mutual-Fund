@@ -1,7 +1,14 @@
 // Application Constants
 const APP_CONFIG = {
     // API Configuration
-    API_BASE_URL: 'http://localhost:8000',
+    API_BASE_URL: (() => {
+        if (window.API_BASE_URL) {
+            return window.API_BASE_URL;
+        }
+
+        const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        return isLocal ? 'http://localhost:8000' : window.location.origin;
+    })(),
     API_ENDPOINTS: {
         CHAT: '/api/chat',
         HEALTH: '/api/health',

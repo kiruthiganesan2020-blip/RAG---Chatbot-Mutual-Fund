@@ -18,7 +18,8 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 try:
     from fastapi import FastAPI, HTTPException
     from fastapi.middleware.cors import CORSMiddleware
-    from fastapi.responses import JSONResponse
+    from fastapi.responses import FileResponse, JSONResponse
+    from fastapi.staticfiles import StaticFiles
     from pydantic import BaseModel, Field
     import uvicorn
 except ImportError as e:
@@ -48,7 +49,7 @@ app.add_middleware(
 class ChatRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=500, description="User query")
     session_id: str = Field(default="test_session", description="Session identifier")
-    user_id: str = Field(default="test_user", description="User identifier")
+    user_id: str | None = Field(default="test_user", description="User identifier")
 
 class ChatResponse(BaseModel):
     response: str = Field(..., description="Generated response")
@@ -68,6 +69,8 @@ class HealthResponse(BaseModel):
 
 # Global variables
 start_time = time.time()
+frontend_dir = Path(__file__).parent / "frontend"
+frontend_src_dir = frontend_dir / "src"
 
 # Mock responses for testing
 MOCK_RESPONSES = {
@@ -181,7 +184,11 @@ async def get_stats():
 
 @app.get("/")
 async def root():
-    """Root endpoint"""
+    """Serve the frontend when available, otherwise expose API metadata."""
+    index_file = frontend_dir / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
+
     return {
         "message": "HDFC Mutual Fund RAG API",
         "version": "1.0.0",
@@ -189,15 +196,20 @@ async def root():
         "docs": "/docs"
     }
 
+if frontend_src_dir.exists():
+    app.mount("/src", StaticFiles(directory=frontend_src_dir), name="frontend-src")
+
 def main():
     """Main function"""
     print("HDFC Mutual Fund RAG Simple Backend")
     print("=" * 50)
     print("Starting simple backend server...")
     print("Note: This is a mock server for testing")
-    print("Frontend URL: http://localhost:8001")
-    print("Backend URL: http://localhost:8000")
-    print("API Documentation: http://localhost:8000/docs")
+    port = int(os.getenv("PORT", os.getenv("API_PORT", "8000")))
+
+    print(f"Frontend URL: http://localhost:{port}")
+    print(f"Backend URL: http://localhost:{port}")
+    print(f"API Documentation: http://localhost:{port}/docs")
     print("\nPress Ctrl+C to stop the server")
     print("-" * 50)
     
@@ -205,7 +217,7 @@ def main():
     uvicorn.run(
         app,
         host="0.0.0.0",
-        port=8000,
+        port=port,
         log_level="info"
     )
 
